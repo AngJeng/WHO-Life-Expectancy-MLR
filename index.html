@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHO Life Expectancy — Multiple Linear Regression (CRISP-DM)</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --primary: #1d4ed8;
+            --primary-light: #dbeafe;
+            --teal: #0d9488;
+            --text: #0f172a;
+            --muted: #475569;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.65;
+        }
+        header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #0d9488 100%);
+            color: white;
+            padding: 3.5rem 1.5rem;
+            text-align: center;
+        }
+        header .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(4px);
+        }
+        header h1 { font-size: 2.2rem; margin-bottom: 0.75rem; letter-spacing: -0.02em; }
+        header p { max-width: 780px; margin: 0 auto 1.5rem; color: #e2e8f0; font-size: 1.05rem; }
+        .header-links a {
+            display: inline-block;
+            color: white;
+            background: rgba(255,255,255,0.18);
+            text-decoration: none;
+            padding: 0.55rem 1.2rem;
+            border-radius: 8px;
+            margin: 0.25rem;
+            font-weight: 600;
+            font-size: 0.92rem;
+            transition: background 0.2s;
+        }
+        .header-links a:hover { background: rgba(255,255,255,0.3); }
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+        }
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+        }
+        nav a:hover { color: var(--primary); background: var(--primary-light); }
+        .container { max-width: 1180px; margin: 2.2rem auto; padding: 0 1.25rem; }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1.1rem;
+            margin-bottom: 2.2rem;
+        }
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.35rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .kpi-card .label { font-size: 0.82rem; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+        .kpi-card .value { font-size: 1.85rem; font-weight: 800; color: var(--primary); margin: 0.3rem 0; }
+        .kpi-card .sub { font-size: 0.85rem; color: var(--muted); }
+        section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        section h2 {
+            font-size: 1.45rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 2px solid #f1f5f9;
+            color: #0f172a;
+        }
+        section h3 { font-size: 1.12rem; margin: 1.25rem 0 0.5rem; color: #1e3a8a; }
+        p, li { color: #334155; margin-bottom: 0.65rem; }
+        ul { padding-left: 1.3rem; }
+        .crisp-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 1.1rem;
+            margin-top: 1rem;
+        }
+        .crisp-box {
+            background: #f8fafc;
+            border-left: 4px solid var(--primary);
+            padding: 1.1rem 1.25rem;
+            border-radius: 8px;
+        }
+        .crisp-box h4 { color: var(--primary); margin-bottom: 0.4rem; font-size: 1.02rem; }
+        .img-card {
+            margin: 1.4rem 0;
+            text-align: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+        .img-card img { max-width: 100%; height: auto; border-radius: 6px; }
+        .img-caption { font-size: 0.88rem; color: var(--muted); margin-top: 0.6rem; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.92rem;
+        }
+        th, td {
+            padding: 0.75rem 0.9rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th { background: #f1f5f9; font-weight: 700; color: #1e293b; }
+        .highlight-row { background-color: #eff6ff; }
+        .badge-best {
+            background: #2563eb; color: white; font-size: 0.72rem;
+            padding: 0.15rem 0.5rem; border-radius: 99px; margin-left: 0.4rem;
+        }
+        .tag-pos { background: #dcfce7; color: #166534; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 600; font-size: 0.8rem; }
+        .tag-neg { background: #fee2e2; color: #991b1b; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 600; font-size: 0.8rem; }
+        pre {
+            background: #0f172a; color: #f8fafc; padding: 1.1rem;
+            border-radius: 8px; overflow-x: auto; font-size: 0.86rem; margin: 0.8rem 0;
+        }
+        footer {
+            text-align: center; padding: 2.5rem 1rem; color: var(--muted); font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="badge">HW2: Multiple Linear Regression | CRISP-DM Methodology</div>
+    <h1>WHO Life Expectancy — 多元線性回歸完整實作與診斷分析</h1>
+    <p>遵循 CRISP-DM 六大標準流程，針對 20 個健康與社經輸入特徵進行多重共線性診斷 (VIF)、遞迴特徵消除 (RFE 選出 14 個核心特徵)、區間預測 (95% CI & PI) 以及五大回歸假設檢定。</p>
+    <div class="header-links">
+        <a href="https://github.com/AngJeng/WHO-Life-Expectancy-MLR" target="_blank">🐙 GitHub Repo</a>
+        <a href="https://github.com/AngJeng/WHO-Life-Expectancy-MLR/blob/main/WHO_Life_Expectancy_MLR.ipynb" target="_blank">📓 Jupyter Notebook</a>
+        <a href="https://www.kaggle.com/datasets/kumarajarshi/life-expectancy-who" target="_blank">📊 Kaggle 資料集來源</a>
+        <a href="#evaluation">📈 模型評估與預測圖</a>
+        <a href="#assumptions">🔬 五大回歸假設檢定</a>
+        <a href="#implementation">💻 完整實作說明</a>
+    </div>
+</header>
+
+<nav>
+    <a href="#crisp-dm">1. CRISP-DM 流程</a>
+    <a href="#eda">2. 資料理解與準備</a>
+    <a href="#feature-selection">3. 特徵選擇 (20 → 14)</a>
+    <a href="#evaluation">4. 模型評估與區間預測</a>
+    <a href="#assumptions">5. 五大回歸假設檢定</a>
+    <a href="#notebooklm">6. NotebookLM 摘要與比較</a>
+    <a href="#implementation">7. 實作說明</a>
+</nav>
+
+<div class="container">
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="label">輸入特徵數 (不含 Target)</div>
+            <div class="value">20 → 14</div>
+            <div class="sub">符合 14–39 特徵限制 (RFE 精簡)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">測試集決定係數 (Test R²)</div>
+            <div class="value">0.8083</div>
+            <div class="sub">Adjusted R² = 0.8036</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">預測均方根誤差 (RMSE)</div>
+            <div class="value">4.07 歲</div>
+            <div class="sub">MAE = 3.02 歲 | MSE = 16.58</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">95% 預測區間涵蓋率</div>
+            <div class="value">94.5%</div>
+            <div class="sub">Max VIF = 3.38 (&lt; 5 無共線性)</div>
+        </div>
+    </div>
+
+    <!-- Section 1: CRISP-DM -->
+    <section id="crisp-dm">
+        <h2>1. CRISP-DM 標準資料科學流程說明</h2>
+        <p>本研究採用跨產業資料探勘標準流程（CRISP-DM），分析世界衛生組織（WHO）193 個國家自 2000 年至 2015 年共 2928 筆有效樣本，預測連續目標變數 <code>Life expectancy</code>（預期壽命）。</p>
+        <div class="crisp-grid">
+            <div class="crisp-box">
+                <h4>Step 1. Business Understanding</h4>
+                <p>量化疫苗覆蓋率、死亡率指標、受教育年限與宏觀經濟對預期壽命的邊際影響，建立可解釋的線性回歸模型以輔助公共衛生資源分配。</p>
+            </div>
+            <div class="crisp-box">
+                <h4>Step 2. Data Understanding</h4>
+                <p>原始資料共 22 欄。扣除目標變數 <code>Life expectancy</code> 與國家識別碼 <code>Country</code> 後，共有 <strong>20 個輸入特徵</strong>（落在 14~39 規定範圍內）。</p>
+            </div>
+            <div class="crisp-box">
+                <h4>Step 3. Data Preparation</h4>
+                <p>清理欄位空白字元、移除 10 筆目標缺失樣本、以國家分組中位數與訓練集中位數填補缺失值，並執行 <code>StandardScaler</code> 標準化。</p>
+            </div>
+            <div class="crisp-box">
+                <h4>Step 4. Modeling & Feature Selection</h4>
+                <p>結合 VIF 共線性檢驗與 <code>sklearn.feature_selection.RFE</code>，將 20 個特徵篩選為 <strong>14 個核心特徵</strong>，比較 OLS、Ridge 與 Lasso。</p>
+            </div>
+            <div class="crisp-box">
+                <h4>Step 5. Evaluation</h4>
+                <p>以 MAE、MSE、RMSE、R²、Adjusted R² 全面評估，繪製 <strong>95% 信賴區間 (CI) 與預測區間 (PI)</strong>，並完成五大回歸假設檢定。</p>
+            </div>
+            <div class="crisp-box">
+                <h4>Step 6. Deployment</h4>
+                <p>將完整分析圖表與統計推論成果自動部署為靜態互動網頁（GitHub Pages），提供公衛政策制定者直觀的指標權重參考。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: EDA -->
+    <section id="eda">
+        <h2>2. 資料理解與探索性資料分析 (EDA)</h2>
+        <p>目標變數 <code>Life expectancy</code> 平均為 <strong>69.22 歲</strong>（中位數 72.10 歲）。從右側相關係數矩陣可見，<code>Schooling</code>（受教育年限，$r=0.75$）與 <code>Income composition of resources</code>（資源收入指數，$r=0.72$）與壽命呈最強正相關；而 <code>Adult Mortality</code>（成人死亡率，$r=-0.70$）與 <code>HIV/AIDS</code>（$r=-0.56$）則呈強烈負相關。</p>
+        <div class="img-card">
+            <img src="assets/fig1_eda_correlation.png" alt="EDA Target Distribution and Correlation Matrix">
+            <div class="img-caption">圖 1：目標變數預期壽命分佈圖（左）與 Top 12 高度相關特徵之皮爾森相關係數熱力圖（右）。</div>
+        </div>
+    </section>
+
+    <!-- Section 3: Feature Selection -->
+    <section id="feature-selection">
+        <h2>3. 特徵選擇 (Feature Selection: 20 → 14 Features)</h2>
+        <p>原始 20 個特徵中存在極端多重共線性（例如 <code>infant deaths</code> 與 <code>under-five deaths</code> 的 VIF 高達 180 以上）。我們透過兩階段特徵選擇：</p>
+        <ul>
+            <li><strong>階段一（VIF 共線性剔除）</strong>：移除重複衡量相同概念的冗餘特徵（<code>under-five deaths</code>、<code>percentage expenditure</code>、<code>thinness 5-9 years</code>）。</li>
+            <li><strong>階段二（RFE 遞迴特徵消除）</strong>：以 <code>sklearn.LinearRegression</code> 為基底，選出最具統計解釋力的 <strong>14 個特徵</strong>，確保所有入選特徵的 VIF 皆低於 3.38（遠低於警戒值 10）。</li>
+        </ul>
+        <div class="img-card">
+            <img src="assets/fig2_feature_selection.png" alt="Feature Selection Coefficients and VIF">
+            <div class="img-caption">圖 2：RFE 選出之 14 個特徵標準化回歸係數（左）與特徵選擇後之 VIF 多重共線性檢驗（右）。</div>
+        </div>
+
+        <h3>入選 14 個核心特徵之回歸係數、顯著性與 VIF 明細表</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>特徵名稱 (Feature)</th>
+                    <th>標準化係數 (Std. Coef)</th>
+                    <th>影響方向</th>
+                    <th>P-value (統計顯著性)</th>
+                    <th>VIF (共線性指標)</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+    <tr>
+        <td><code>Adult Mortality</code></td>
+        <td><strong>-2.5985</strong></td>
+        <td><span class="tag-neg">- Negative</span></td>
+        <td>1.7761e-106 (***)</td>
+        <td>1.68</td>
+    </tr>
+    
+    <tr>
+        <td><code>HIV/AIDS</code></td>
+        <td><strong>-2.5295</strong></td>
+        <td><span class="tag-neg">- Negative</span></td>
+        <td>3.0163e-121 (***)</td>
+        <td>1.38</td>
+    </tr>
+    
+    <tr>
+        <td><code>Schooling</code></td>
+        <td><strong>+2.1764</strong></td>
+        <td><span class="tag-pos">+ Positive</span></td>
+        <td>7.5251e-41 (***)</td>
+        <td>3.38</td>
+    </tr>
+    
+    <tr>
+        <td><code>Income composition of resources</code></td>
+        <td><strong>+1.1999</strong></td>
+        <td><span class="tag-pos">+ Positive</span></td>
+        <td>1.4006e-15 (***)</td>
+        <td>2.96</td>
+    </tr>
+    
+    <tr>
+        <td><code>Diphtheria</code></td>
+        <td><strong>+1.0430</strong></td>
+        <td><span class="tag-pos">+ Positive</span></td>
+        <td>1.5306e-15 (***)</td>
+        <td>2.24</td>
+    </tr>
+    
+    <tr>
+        <td><code>BMI</code></td>
+        <td><strong>+0.8688</strong></td>
+        <td><span class="tag-pos">+ Positive</span></td>
+        <td>2.4397e-14 (***)</td>
+        <td>1.71</td>
+    </tr>
+    
+    <tr>
+        <td><code>Polio</code></td>
+        <td><strong>+0.7488</strong></td>
+        <td><span class="tag-pos">+ Positive</span></td>
+        <td>6.3493e-10 (***)</td>
+        <td>1.94</td>
+    </tr>
+    
+    <tr>
+        <td><code>GDP</code></td>
+        <td><strong>+0.6049</strong></td>
+        <td><span class="tag-pos">+ Positive</span></td>
+        <td>3.7205e-09 (***)</td>
+        <td>1.39</td>
+    </tr>
+    
+    <tr>
+        <td><code>Status</code></td>
+        <td><strong>+0.5130</strong></td>
+        <td><span class="tag-pos">+ Positive</span></td>
+        <td>1.8627e-05 (***)</td>
+        <td>1.90</td>
+    </tr>
+    
+    <tr>
+        <td><code>Measles</code></td>
+        <td><strong>-0.4535</strong></td>
+        <td><span class="tag-neg">- Negative</span></td>
+        <td>5.2646e-07 (***)</td>
+        <td>1.08</td>
+    </tr>
+    
+    <tr>
+        <td><code>thinness 1-19 years</code></td>
+        <td><strong>-0.3896</strong></td>
+        <td><span class="tag-neg">- Negative</span></td>
+        <td>4.8433e-04 (***)</td>
+        <td>1.65</td>
+    </tr>
+    
+    <tr>
+        <td><code>Alcohol</code></td>
+        <td><strong>+0.1826</strong></td>
+        <td><span class="tag-pos">+ Positive</span></td>
+        <td>1.2419e-01 (ns)</td>
+        <td>1.88</td>
+    </tr>
+    
+    <tr>
+        <td><code>Hepatitis B</code></td>
+        <td><strong>-0.1549</strong></td>
+        <td><span class="tag-neg">- Negative</span></td>
+        <td>1.5581e-01 (ns)</td>
+        <td>1.58</td>
+    </tr>
+    
+    <tr>
+        <td><code>Total expenditure</code></td>
+        <td><strong>+0.1372</strong></td>
+        <td><span class="tag-pos">+ Positive</span></td>
+        <td>1.4710e-01 (ns)</td>
+        <td>1.19</td>
+    </tr>
+    
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Section 4: Evaluation & Prediction Intervals -->
+    <section id="evaluation">
+        <h2>4. 模型評估與區間預測圖 (Confidence & Prediction Intervals)</h2>
+        <p>下表比較全特徵模型（20 個特徵）、特徵選擇後模型（RFE 14 個特徵、SelectKBest 14 個特徵）以及正則化模型（Ridge、LassoCV）在測試集上的表現。可以發現 <strong>RFE 14 特徵模型</strong> 在消除了 6 個冗餘特徵後，依然維持 <strong>R² = 0.8083、RMSE = 4.0723</strong> 的優異表現，且模型結構更加穩健。</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>模型名稱 (Model)</th>
+                    <th>特徵數</th>
+                    <th>MAE</th>
+                    <th>MSE</th>
+                    <th>RMSE</th>
+                    <th>Train R²</th>
+                    <th>Test R²</th>
+                    <th>Adjusted R²</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+    <tr >
+        <td><strong>OLS LinearRegression (All 20 Features)</strong> </td>
+        <td>20</td>
+        <td>2.9274</td>
+        <td>15.6027</td>
+        <td>3.9500</td>
+        <td>0.8188</td>
+        <td><strong>0.8196</strong></td>
+        <td><strong>0.8132</strong></td>
+    </tr>
+    
+    <tr class="highlight-row">
+        <td><strong>OLS LinearRegression (RFE 14 Features)</strong> <span class="badge-best">Best Balance</span></td>
+        <td>14</td>
+        <td>3.0243</td>
+        <td>16.5836</td>
+        <td>4.0723</td>
+        <td>0.8093</td>
+        <td><strong>0.8083</strong></td>
+        <td><strong>0.8036</strong></td>
+    </tr>
+    
+    <tr >
+        <td><strong>OLS LinearRegression (SelectKBest 14)</strong> </td>
+        <td>14</td>
+        <td>3.0146</td>
+        <td>16.4640</td>
+        <td>4.0576</td>
+        <td>0.8071</td>
+        <td><strong>0.8097</strong></td>
+        <td><strong>0.8050</strong></td>
+    </tr>
+    
+    <tr >
+        <td><strong>Ridge Regression (RFE 14 Features)</strong> </td>
+        <td>14</td>
+        <td>3.0241</td>
+        <td>16.5797</td>
+        <td>4.0718</td>
+        <td>0.8093</td>
+        <td><strong>0.8083</strong></td>
+        <td><strong>0.8036</strong></td>
+    </tr>
+    
+    <tr >
+        <td><strong>LassoCV Regression (Auto L1 Selection)</strong> </td>
+        <td>20</td>
+        <td>2.9254</td>
+        <td>15.6211</td>
+        <td>3.9524</td>
+        <td>0.8185</td>
+        <td><strong>0.8194</strong></td>
+        <td><strong>0.8130</strong></td>
+    </tr>
+    
+            </tbody>
+        </table>
+
+        <div class="img-card">
+            <img src="assets/fig3_model_comparison.png" alt="Model Metrics Comparison">
+            <div class="img-caption">圖 3：五種線性回歸設定之 R² / Adjusted R²（左）與誤差指標 RMSE / MAE（右）對比。</div>
+        </div>
+
+        <h3>多元線性回歸預測圖（含 95% 信賴區間 CI 與 95% 預測區間 PI）</h3>
+        <p>作業規定必備之區間預測視覺化：深藍色窄帶為 <strong>95% 信賴區間 (Confidence Interval)</strong>，反映回歸均值函數的估計精準度；淺橘色寬帶為 <strong>95% 預測區間 (Prediction Interval)</strong>，代表單一新樣本真實值的預測落點範圍，於測試集之實際涵蓋率達 <strong>94.5%</strong>，高度吻合 95% 理論水準。</p>
+        <div class="img-card">
+            <img src="assets/fig4_prediction_intervals.png" alt="Prediction Intervals CI and PI">
+            <div class="img-caption">圖 4：測試集排序樣本之多元線性回歸預測曲線、95% 信賴區間與 95% 預測區間（左），以及真實值對預測值散佈圖（右）。</div>
+        </div>
+    </section>
+
+    <!-- Section 5: 5 Regression Assumptions -->
+    <section id="assumptions">
+        <h2>5. 五大線性回歸假設檢定 (Five Regression Assumptions)</h2>
+        <p>為確保多元線性回歸模型的統計推論有效性，我們針對殘差與特徵進行完整的五大假設診斷：</p>
+        <ul>
+            <li><strong>假設 1：線性關係 (Linearity)</strong> — 殘差對預測值圖（左上）的 LOWESS 平滑紅線貼近 0 水平線，殘差平均值為 <code>-2.10e-14</code>，證實線性假設成立。</li>
+            <li><strong>假設 2：誤差獨立性 (Independence of Errors)</strong> — Durbin-Watson 統計量為 <code>2.0016</code>（完美落在 1.5 ~ 2.5 無自我相關區間內）。</li>
+            <li><strong>假設 3：同質變異數 (Homoscedasticity)</strong> — Scale-Location 圖（左下）顯示標準化殘差平方根在各預測區間分佈大致均勻。</li>
+            <li><strong>假設 4：殘差常態性 (Normality of Residuals)</strong> — Q-Q Plot（右上）與標準化殘差直方圖（右下）顯示殘差緊密貼合 45 度標準常態分佈線（偏態係數 Skewness = <code>-0.237</code>）。</li>
+            <li><strong>假設 5：無多重共線性 (No Multicollinearity)</strong> — 經 VIF 篩選與 RFE 後，14 個特徵之最大 VIF 僅為 <code>3.38</code>，平均 VIF 為 <code>1.86</code>（遠低於 10 的門檻）。</li>
+        </ul>
+        <div class="img-card">
+            <img src="assets/fig5_regression_assumptions.png" alt="Five Regression Assumptions Diagnostics">
+            <div class="img-caption">圖 5：多元線性回歸五大假設檢定診斷圖（Residuals vs Fitted、Normal Q-Q、Scale-Location、Residual Histogram & VIF）。</div>
+        </div>
+    </section>
+
+    <!-- Section 6: NotebookLM Summary -->
+    <section id="notebooklm">
+        <h2>6. NotebookLM 研究摘要與網路主流解法比較</h2>
+        <p>透過 <strong>NotebookLM</strong> 彙整 Kaggle 社群針對 WHO Life Expectancy 資料集之高票研究與文獻後，歸納出三大核心洞察：</p>
+        <ul>
+            <li><strong>分組缺失值填補策略</strong>：主流高分做法利用同一國家跨年度資料的連續性，先以 <code>Country</code> 分組中位數填補 GDP 與人口缺失，再進行跨國填補，能顯著降低填補偏差。本研究已將此策略整合進 Data Preparation 流程。</li>
+            <li><strong>多重共線性消除之必要性</strong>：原始資料中嬰兒死亡率與五歲以下死亡率相關係數高達 0.996，若直接放入 OLS 會導致回歸係數符號反轉。透過 VIF 搭配 RFE 篩選出 14 個特徵，能兼顧模型精簡度與統計解釋力。</li>
+            <li><strong>線性回歸與非線性樹模型之權衡</strong>：雖然 Random Forest 或 XGBoost 能捕捉 BMI 等指標的非線性邊界，但 <code>sklearn.LinearRegression</code> 搭配 <code>statsmodels</code> 能夠提供明確的標準化係數權重、P-value 顯著性檢定以及 95% 信賴/預測區間，在公共衛生政策制定上具備不可替代的透明度。</li>
+        </ul>
+    </section>
+
+    <!-- Section 7: Implementation Guide -->
+    <section id="implementation">
+        <h2>7. 完整實作與重現步驟說明 (Implementation Guide)</h2>
+        <p>本專案僅需執行單一 Python 腳本，即可自動完成資料下載、清理、特徵選擇、模型評估、五大假設檢定，並自動產出 <code>assets/</code> 下所有 300 DPI 圖表與本 <code>index.html</code> 網頁：</p>
+        <pre><code># 1. 安裝必要套件
+pip install numpy pandas scikit-learn statsmodels scipy matplotlib seaborn kagglehub
+
+# 2. 執行主程式 (自動下載 WHO 資料集、訓練模型、輸出 5 張圖表與 index.html)
+python 7114056XXX_hw2.py</code></pre>
+    </section>
+</div>
+
+<footer>
+    <p>HW2 Multiple Linear Regression Project | Built with Python, scikit-learn, statsmodels &amp; GitHub Pages</p>
+</footer>
+
+</body>
+</html>
