@@ -14,7 +14,7 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression, Ridge, LassoCV
@@ -238,6 +238,114 @@ plt.tight_layout()
 plt.savefig(os.path.join(ASSETS_DIR, "fig2_feature_selection.png"), dpi=300, bbox_inches="tight")
 plt.close()
 print("[Saved] assets/fig2_feature_selection.png")
+
+# --- 繪製圖表 6: 特徵數量 k = 1~20 對模型表現折線圖 (fig6_feature_count_curve.png) ---
+print("\n[Analysis] 正在計算特徵數量 k = 1~20 之模型表現曲線與 5-Fold 交叉驗證...")
+k_range = list(range(1, X_train_scaled.shape[1] + 1))
+rfe_curve_data = []
+kbest_curve_data = []
+n_test = len(y_test)
+
+for k in k_range:
+    # RFE
+    rfe_k = RFE(estimator=LinearRegression(), n_features_to_select=k, step=1)
+    rfe_k.fit(X_train_scaled, y_train)
+    feats_rfe = X_train_scaled.columns[rfe_k.support_]
+    
+    m_rfe = LinearRegression().fit(X_train_scaled[feats_rfe], y_train)
+    pred_tr_rfe = m_rfe.predict(X_train_scaled[feats_rfe])
+    pred_te_rfe = m_rfe.predict(X_test_scaled[feats_rfe])
+    
+    tr_r2_rfe = r2_score(y_train, pred_tr_rfe)
+    te_r2_rfe = r2_score(y_test, pred_te_rfe)
+    adj_r2_rfe = 1 - (1 - te_r2_rfe) * (n_test - 1) / (n_test - k - 1)
+    cv_r2_rfe = cross_val_score(LinearRegression(), X_train_scaled[feats_rfe], y_train, cv=5, scoring="r2").mean()
+    rmse_rfe = np.sqrt(mean_squared_error(y_test, pred_te_rfe))
+    mae_rfe = mean_absolute_error(y_test, pred_te_rfe)
+    
+    rfe_curve_data.append({
+        "k": k, "Train_R2": tr_r2_rfe, "Test_R2": te_r2_rfe,
+        "Adjusted_R2": adj_r2_rfe, "CV_R2": cv_r2_rfe,
+        "RMSE": rmse_rfe, "MAE": mae_rfe
+    })
+    
+    # SelectKBest
+    kb_k = SelectKBest(score_func=f_regression, k=k)
+    kb_k.fit(X_train_scaled, y_train)
+    feats_kb = X_train_scaled.columns[kb_k.get_support()]
+    
+    m_kb = LinearRegression().fit(X_train_scaled[feats_kb], y_train)
+    pred_te_kb = m_kb.predict(X_test_scaled[feats_kb])
+    
+    te_r2_kb = r2_score(y_test, pred_te_kb)
+    adj_r2_kb = 1 - (1 - te_r2_kb) * (n_test - 1) / (n_test - k - 1)
+    rmse_kb = np.sqrt(mean_squared_error(y_test, pred_te_kb))
+    mae_kb = mean_absolute_error(y_test, pred_te_kb)
+    
+    kbest_curve_data.append({
+        "k": k, "Test_R2": te_r2_kb, "Adjusted_R2": adj_r2_kb,
+        "RMSE": rmse_kb, "MAE": mae_kb
+    })
+
+df_rfe_curve = pd.DataFrame(rfe_curve_data)
+df_kb_curve = pd.DataFrame(kbest_curve_data)
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# 左圖: Feature Count vs. R² / Adjusted R² / CV R²
+axes[0].plot(df_rfe_curve["k"], df_rfe_curve["Train_R2"], marker="o", color="#94a3b8", linestyle="--", linewidth=1.5, label="Train R² (RFE)")
+axes[0].plot(df_rfe_curve["k"], df_rfe_curve["Test_R2"], marker="o", color="#2563eb", linewidth=2.2, label="Test R² (RFE)")
+axes[0].plot(df_rfe_curve["k"], df_rfe_curve["Adjusted_R2"], marker="s", color="#0d9488", linewidth=2.2, label="Test Adjusted R² (RFE)")
+axes[0].plot(df_rfe_curve["k"], df_rfe_curve["CV_R2"], marker="^", color="#7c3aed", linewidth=1.8, label="5-Fold CV R² (Train)")
+
+axes[0].axvline(14, color="#dc2626", linestyle="--", linewidth=2, label="Optimal Selection (k = 14)")
+rfe_14_row = df_rfe_curve[df_rfe_curve["k"] == 14].iloc[0]
+axes[0].scatter([14], [rfe_14_row["Adjusted_R2"]], color="#dc2626", s=90, zorder=5)
+axes[0].annotate(
+    f"k = 14 (Plateau)\nAdj R² = {rfe_14_row['Adjusted_R2']:.4f}\nTest R² = {rfe_14_row['Test_R2']:.4f}\nCV R² = {rfe_14_row['CV_R2']:.4f}",
+    xy=(14, rfe_14_row["Adjusted_R2"]),
+    xytext=(8.5, 0.65),
+    arrowprops=dict(arrowstyle="->", color="#dc2626", lw=1.5),
+    bbox=dict(boxstyle="round,pad=0.5", facecolor="#fef2f2", edgecolor="#dc2626", alpha=0.95),
+    fontsize=9.5, fontweight="bold"
+)
+
+axes[0].set_title("Feature Count (k = 1~20) vs. Model R² / Adjusted R² / CV R²", fontsize=13, fontweight="bold")
+axes[0].set_xlabel("Number of Selected Features (k)", fontsize=11)
+axes[0].set_ylabel("Score", fontsize=11)
+axes[0].set_xticks(k_range)
+axes[0].set_ylim(0.50, 0.86)
+axes[0].legend(loc="lower right", frameon=True, facecolor="white")
+
+# 右圖: Feature Count vs. RMSE & MAE
+axes[1].plot(df_rfe_curve["k"], df_rfe_curve["RMSE"], marker="o", color="#f59e0b", linewidth=2.2, label="RFE Test RMSE (Years)")
+axes[1].plot(df_rfe_curve["k"], df_rfe_curve["MAE"], marker="o", color="#2563eb", linewidth=2.2, label="RFE Test MAE (Years)")
+axes[1].plot(df_kb_curve["k"], df_kb_curve["RMSE"], marker="x", color="#fbbf24", linestyle=":", linewidth=1.5, label="SelectKBest Test RMSE")
+axes[1].plot(df_kb_curve["k"], df_kb_curve["MAE"], marker="x", color="#60a5fa", linestyle=":", linewidth=1.5, label="SelectKBest Test MAE")
+
+axes[1].axvline(14, color="#dc2626", linestyle="--", linewidth=2, label="Optimal Selection (k = 14)")
+axes[1].scatter([14], [rfe_14_row["RMSE"]], color="#dc2626", s=80, zorder=5)
+axes[1].scatter([14], [rfe_14_row["MAE"]], color="#dc2626", s=80, zorder=5)
+axes[1].annotate(
+    f"k = 14\nRMSE = {rfe_14_row['RMSE']:.2f} yrs\nMAE = {rfe_14_row['MAE']:.2f} yrs",
+    xy=(14, rfe_14_row["RMSE"]),
+    xytext=(14.8, 5.0),
+    arrowprops=dict(arrowstyle="->", color="#dc2626", lw=1.5),
+    bbox=dict(boxstyle="round,pad=0.5", facecolor="#fffbeb", edgecolor="#f59e0b", alpha=0.95),
+    fontsize=9.5, fontweight="bold"
+)
+
+axes[1].set_title("Feature Count (k = 1~20) vs. Test Error (RMSE & MAE)", fontsize=13, fontweight="bold")
+axes[1].set_xlabel("Number of Selected Features (k)", fontsize=11)
+axes[1].set_ylabel("Error (Years)", fontsize=11)
+axes[1].set_xticks(k_range)
+axes[1].set_ylim(2.5, 6.5)
+axes[1].legend(loc="upper right", frameon=True, facecolor="white")
+
+plt.tight_layout()
+plt.savefig(os.path.join(ASSETS_DIR, "fig6_feature_count_curve.png"), dpi=300, bbox_inches="tight")
+plt.close()
+print("[Saved] assets/fig6_feature_count_curve.png")
 
 # =============================================================================
 # 5. 模型評估 (Model Evaluation: MAE, MSE, RMSE, R², Adjusted R²)
@@ -465,6 +573,102 @@ plt.savefig(os.path.join(ASSETS_DIR, "fig5_regression_assumptions.png"), dpi=300
 plt.close()
 print("[Saved] assets/fig5_regression_assumptions.png")
 
+# --- 繪製圖表 7: 多模型殘差比較與預測誤差深入評估圖 (fig7_residual_error_analysis.png) ---
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+pred_full = lr_full.predict(X_test_scaled)
+pred_selected = lr_selected.predict(X_test_scaled[selected_features])
+pred_kbest = lr_kbest.predict(X_test_scaled[kbest_features])
+pred_ridge = ridge_model.predict(X_test_scaled[selected_features])
+pred_lasso = lasso_model.predict(X_test_scaled)
+
+error_data = {
+    "Full OLS (20)": np.abs(y_test.values - pred_full),
+    "RFE OLS (14) ★": np.abs(y_test.values - pred_selected),
+    "KBest OLS (14)": np.abs(y_test.values - pred_kbest),
+    "Ridge (14)": np.abs(y_test.values - pred_ridge),
+    "LassoCV": np.abs(y_test.values - pred_lasso),
+}
+df_errors = pd.DataFrame(error_data)
+
+# 左圖: 5 個模型的絕對誤差分佈箱形圖
+colors_box = ["#94a3b8", "#2563eb", "#0d9488", "#f59e0b", "#8b5cf6"]
+bp = axes[0].boxplot(
+    [df_errors[c] for c in df_errors.columns],
+    labels=list(df_errors.columns),
+    patch_artist=True,
+    showmeans=True,
+    meanprops=dict(marker="o", markeredgecolor="black", markerfacecolor="red", markersize=6),
+    medianprops=dict(color="black", linewidth=1.8),
+    boxprops=dict(linewidth=1.2),
+    flierprops=dict(marker=".", markersize=4, alpha=0.3)
+)
+
+for patch, color in zip(bp["boxes"], colors_box):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.65)
+
+# 標註各模型的中位數與平均絕對誤差
+for i, col in enumerate(df_errors.columns, 1):
+    med = df_errors[col].median()
+    mean_val = df_errors[col].mean()
+    axes[0].text(i, 14.5, f"Med: {med:.2f}\nMean: {mean_val:.2f}", ha="center", fontsize=8.5,
+                 bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="#cccccc", alpha=0.85))
+
+axes[0].set_title("Absolute Prediction Error Distribution Across 5 Models", fontsize=12.5, fontweight="bold")
+axes[0].set_ylabel("Absolute Error |Actual - Predicted| (Years)", fontsize=11)
+axes[0].set_ylim(0, 16.5)
+axes[0].tick_params(axis="x", rotation=12)
+
+# 右圖: 依預期壽命級距分組分析 RFE OLS (14) 之預測殘差
+bins = [0, 60, 70, 78, 120]
+labels_strata = ["< 60 yrs\n(Low)", "60 - 70 yrs\n(Lower-Mid)", "70 - 78 yrs\n(Upper-Mid)", "> 78 yrs\n(High)"]
+segments = pd.cut(y_test.values, bins=bins, labels=labels_strata, right=False)
+
+df_seg = pd.DataFrame({
+    "Actual": y_test.values,
+    "Predicted": pred_selected,
+    "Residual": y_test.values - pred_selected,
+    "Abs_Error": np.abs(y_test.values - pred_selected),
+    "Segment": segments
+})
+
+seg_residuals = [df_seg[df_seg["Segment"] == s]["Residual"].values for s in labels_strata]
+bp_seg = axes[1].boxplot(
+    seg_residuals,
+    labels=labels_strata,
+    patch_artist=True,
+    showmeans=True,
+    meanprops=dict(marker="o", markeredgecolor="black", markerfacecolor="red", markersize=6),
+    medianprops=dict(color="black", linewidth=1.8),
+    flierprops=dict(marker=".", markersize=4, alpha=0.35)
+)
+
+seg_colors = ["#f87171", "#fbbf24", "#34d399", "#60a5fa"]
+for patch, color in zip(bp_seg["boxes"], seg_colors):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.65)
+
+axes[1].axhline(0, color="black", linestyle="--", linewidth=1.2)
+
+for i, s in enumerate(labels_strata, 1):
+    sub_df = df_seg[df_seg["Segment"] == s]
+    count = len(sub_df)
+    mae_s = sub_df["Abs_Error"].mean()
+    rmse_s = np.sqrt((sub_df["Residual"]**2).mean())
+    axes[1].text(i, -14.2, f"N={count}\nMAE={mae_s:.2f}y\nRMSE={rmse_s:.2f}y", ha="center", fontsize=8.5,
+                 bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="#cccccc", alpha=0.85))
+
+axes[1].set_title("RFE OLS (14) Residuals (Actual - Predicted) by Life Expectancy Strata", fontsize=12.5, fontweight="bold")
+axes[1].set_ylabel("Residual (Actual - Predicted) [Years]", fontsize=11)
+axes[1].set_xlabel("Life Expectancy Strata", fontsize=11)
+axes[1].set_ylim(-16.0, 16.0)
+
+plt.tight_layout()
+plt.savefig(os.path.join(ASSETS_DIR, "fig7_residual_error_analysis.png"), dpi=300, bbox_inches="tight")
+plt.close()
+print("[Saved] assets/fig7_residual_error_analysis.png")
+
 # =============================================================================
 # 8. 自動生成 GitHub Pages 精美展示網站 (`index.html`)
 # =============================================================================
@@ -682,8 +886,11 @@ html_content = f"""<!DOCTYPE html>
     <h1>WHO Life Expectancy — 多元線性回歸完整實作與診斷分析</h1>
     <p>遵循 CRISP-DM 六大標準流程，針對 20 個健康與社經輸入特徵進行多重共線性診斷 (VIF)、遞迴特徵消除 (RFE 選出 14 個核心特徵)、區間預測 (95% CI & PI) 以及五大回歸假設檢定。</p>
     <div class="header-links">
+        <a href="https://github.com/AngJeng/WHO-Life-Expectancy-MLR" target="_blank">🐙 GitHub Repo</a>
+        <a href="https://github.com/AngJeng/WHO-Life-Expectancy-MLR/blob/main/WHO_Life_Expectancy_MLR.ipynb" target="_blank">📓 Jupyter Notebook</a>
         <a href="https://www.kaggle.com/datasets/kumarajarshi/life-expectancy-who" target="_blank">📊 Kaggle 資料集來源</a>
-        <a href="#evaluation">📈 模型評估與預測圖</a>
+        <a href="#feature-selection">🔍 特徵數量曲線</a>
+        <a href="#evaluation">📈 模型評估與誤差分析</a>
         <a href="#assumptions">🔬 五大回歸假設檢定</a>
         <a href="#implementation">💻 完整實作說明</a>
     </div>
@@ -794,6 +1001,13 @@ html_content = f"""<!DOCTYPE html>
                 {feature_rows_html}
             </tbody>
         </table>
+
+        <h3>特徵數量對模型表現與誤差之影響曲線 (k = 1 ~ 20)</h3>
+        <p>為嚴格驗證特徵數量的最適性，我們計算了特徵數量 <code>k</code> 從 1 到 20 時，RFE 與 SelectKBest 在訓練集、測試集、調整後決定係數以及 5-Fold 交叉驗證下的表現變化：</p>
+        <div class="img-card">
+            <img src="assets/fig6_feature_count_curve.png" alt="Feature Count Curve k=1 to 20">
+            <div class="img-caption">圖 6：特徵數量 k = 1 ~ 20 對多元線性回歸模型表現之影響曲線（左圖：Train R²、Test R²、Adjusted R² 與 5-Fold CV R²；右圖：RFE 與 SelectKBest 之 Test RMSE 與 MAE 誤差折線）。紅色虛線標註 k = 14 達到最適轉折點，此後指標呈現飽和平原。</div>
+        </div>
     </section>
 
     <!-- Section 4: Evaluation & Prediction Intervals -->
@@ -829,6 +1043,13 @@ html_content = f"""<!DOCTYPE html>
         <div class="img-card">
             <img src="assets/fig4_prediction_intervals.png" alt="Prediction Intervals CI and PI">
             <div class="img-caption">圖 4：測試集排序樣本之多元線性回歸預測曲線、95% 信賴區間與 95% 預測區間（左），以及真實值對預測值散佈圖（右）。</div>
+        </div>
+
+        <h3>多模型預測殘差分佈與不同壽命級距深入誤差評估</h3>
+        <p>進一步檢視測試集各模型的預測誤差穩健性，並剖析在不同預期壽命級距（&lt;60歲、60-70歲、70-78歲、&gt;78歲）下的殘差表現：</p>
+        <div class="img-card">
+            <img src="assets/fig7_residual_error_analysis.png" alt="Multi-Model Residual and Error Analysis">
+            <div class="img-caption">圖 7：五種線性回歸模型之絕對誤差 |Actual - Predicted| 分佈箱形圖（左，標註中位數與平均數），以及主力 RFE 14 特徵模型在各預期壽命級距之殘差分佈與樣本 MAE/RMSE（右）。</div>
         </div>
     </section>
 
