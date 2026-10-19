@@ -197,7 +197,7 @@ $$\text{PI}_{0.95} = \hat{y} \pm t_{n-p-1, 0.025} \cdot s \sqrt{1 + x_0^T (X^T X
 - **CRISP-DM 流程規劃與特徵規範確認**：確認輸入特徵數需控制在 14~39 個之間，確立移除 `Country` 高基數類別欄位以符合簡潔性規定，並以其作為填補鍵。
 - **統計檢定與演算法除錯**：運用 AI 協助編寫 `statsmodels` 的 `get_prediction().summary_frame()`，推導 95% CI 與 95% PI 區間，並設計五大假設檢定（DW, Breusch-Pagan, Shapiro-Wilk, VIF）診斷四宮格。
 - **特徵數量敏感度折線圖設計**：採納 AI 建議，繪製特徵數 k = 1~20 之 Train/Test/Adjusted/CV R² 與 RMSE/MAE 曲線圖，視覺化論證 k = 14 為最佳轉折飽和點。
-- **對話 PDF 匯出繳交**：對話過程可透過線上分享連結查閱，並已依作業規範透過瀏覽器另存或 pdfCrowd 工具匯出為 PDF 檔案（命名為 `7114056XXX_chat_gpt_history.pdf`）隨作業打包。
+- **對話紀錄與線上完整呈現**：所有與 AI（Gemini / ChatGPT）之對話過程與 NotebookLM 研究成果已全數公開展示於本線上網站與 GitHub 專案庫中（包含線上分享連結與完整對照分析），無須額外繳交 PDF 檔案，評審與助教可直接點擊查閱最新最完整之對話上下文。
 
 ---
 
@@ -216,22 +216,21 @@ $$\text{PI}_{0.95} = \hat{y} \pm t_{n-p-1, 0.025} \cdot s \sqrt{1 + x_0^T (X^T X
 | 評分構面 (佔比) | 評分標準與規定項目 | 本專案達成狀況與佐證 | 狀態 |
 |:---|:---|:---|:---:|
 | **文件說明 (50%)** | CRISP-DM 流程完整且邏輯清楚 (25%) | 完整落實 Business & Data Understanding、Preparation、Modeling、Evaluation、Deployment 六大標準階段。 | **✓ 100% 達成** |
-| | 包含 GPT 對話與 NotebookLM 摘要 (15%) | 附上 NotebookLM 專案連結、Gemini 分享連結、320 字完整研究摘要與對照分析。 | **✓ 100% 達成** |
+| | 包含 GPT 對話與 NotebookLM 摘要 (15%) | 附上 NotebookLM 專案連結、Gemini 分享連結、320 字完整研究摘要與對照分析，全部於網頁完整呈現。 | **✓ 100% 達成** |
 | | 明確說明資料集來源與研究脈絡 (10%) | 標註 Kaggle 原始連結、193 國健康與經濟指標背景、20 輸入特徵至 14 核心特徵選擇脈絡。 | **✓ 100% 達成** |
 | **結果呈現 (50%)** | 模型正確可執行，具特徵選擇與評估 (25%) | 主程式一鍵全自動執行，包含 VIF 篩選 + RFE 遞迴特徵消除，完整評估 5 種模型設定。 | **✓ 100% 達成** |
 | | 結果合理、美觀且具有說服力 (15%) | 輸出 7 張 300 DPI 專業視覺化圖表，網站具備高質感響應式現代化排版與儀表板設計。 | **✓ 100% 達成** |
 | | 預測結果評估 (預測圖、評估指標) (10%) | 必備 95% 信賴區間 (CI) 與 95% 預測區間 (PI) 帶狀圖、Actual vs. Predicted 散佈圖與五大假設檢定。 | **✓ 100% 達成** |
 
-### 繳交檔案打包命名指引：
+### 繳交檔案打包命名指引 (學號：7115056005)：
+本專案成果與完整分析流程（含對話紀錄、NotebookLM 摘要與圖表）皆已完整發佈於 GitHub 專案與 GitHub Pages 網站。繳交壓縮檔結構如下：
 ```text
-7114056XXX_hw2.zip
-├── 7114056XXX_hw2.py              # Python 主程式 (或 main.py)
-├── 7114056XXX_hw2.ipynb           # 包含執行輸出之 Jupyter Notebook
-├── 7114056XXX_report.pdf          # 完整 CRISP-DM 分析與評估報告 PDF
-├── 7114056XXX_chat_gpt_history.pdf# AI 對話紀錄 (pdfCrowd / 另存 PDF)
-├── index.html                     # 靜態網站首頁
+7115056005_hw2.zip
+├── 7115056005_hw2.py              # Python 主程式 (一鍵自動化執行腳本)
+├── 7115056005_hw2.ipynb           # 包含執行輸出與視覺化之 Jupyter Notebook
+├── index.html                     # 靜態網站首頁 (包含所有分析、評估圖表與 AI 對話內容)
 ├── assets/                        # 7 張 300 DPI 分析圖表
-└── README.md                      # GitHub 專案說明文件 (附 GitHub Pages 連結)
+└── README.md                      # GitHub 專案說明文件 (附 GitHub Pages 完整成果網站連結)
 ```
 
 ---

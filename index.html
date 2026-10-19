@@ -606,7 +606,7 @@
             <li><strong>CRISP-DM 流程規劃與特徵規範確認</strong>：協助確認輸入特徵數需控制在 14~39 個之間，並確立將國家識別碼 <code>Country</code> 移出訓練輸入、但於填補階段利用其作為分組鍵的資料工程架構。</li>
             <li><strong>統計檢定與演算法除錯</strong>：運用 AI 協助編寫 <code>statsmodels</code> 的 <code>get_prediction().summary_frame()</code> 程式碼，精準提取 95% 信賴區間（Mean Response CI）與 95% 預測區間（Observation PI），並建立五大假設檢定（Durbin-Watson, Breusch-Pagan, Shapiro-Wilk, VIF）的完整診斷函數。</li>
             <li><strong>特徵數量敏感度分析折線圖設計</strong>：在 AI 建議下，實作特徵數量 <code>k = 1 ~ 20</code> 的迭代計算，繪出 Train R²、Test R²、Adjusted R² 與 5-Fold CV R² 的走勢圖，以嚴格證明 <code>k = 14</code> 是邊際報酬遞減前的最適平衡點。</li>
-            <li><strong>對話紀錄匯出與繳交準備</strong>：對話完整紀錄可隨時透過線上分享連結查閱，並已依作業規範透過瀏覽器另存或 pdfCrowd 工具匯出為 PDF 檔案（檔名規範：<code>7114056XXX_chat_gpt_history.pdf</code>），以供隨作業壓縮檔打包繳交。</li>
+            <li><strong>對話紀錄與線上完整呈現</strong>：所有與 AI（Gemini / ChatGPT）之對話過程與 NotebookLM 研究成果已全數公開展示於本線上網站與 GitHub 專案庫中（包含線上分享連結與完整對照分析），無須依賴額外 PDF 檔案，評審與助教可直接點擊查閱最新最完整之對話上下文。</li>
         </ul>
 
         <h3>【網路上主流與更優解法對照表（Benchmark Comparison Table）】</h3>
@@ -703,16 +703,14 @@
             </tbody>
         </table>
 
-        <h3>繳交檔案結構與壓縮檔命名指引</h3>
-        <pre><code># 請將學號換成真實學號 (例如 7114056XXX_hw2.zip)
-7114056XXX_hw2.zip
-├── 7114056XXX_hw2.py              # Python 主程式 (或 main.py)
-├── 7114056XXX_hw2.ipynb           # 包含執行輸出之 Jupyter Notebook
-├── 7114056XXX_report.pdf          # 完整 CRISP-DM 分析與評估報告 PDF
-├── 7114056XXX_chat_gpt_history.pdf# AI 對話紀錄 (pdfCrowd / 另存 PDF)
-├── index.html                     # 靜態網站首頁
+        <h3>繳交檔案結構與壓縮檔命名指引 (學號：7115056005)</h3>
+        <p>本專案成果與完整分析流程（含對話紀錄、NotebookLM 摘要與圖表）皆已完整發佈於 GitHub 專案與 GitHub Pages 網站。繳交壓縮檔結構如下：</p>
+        <pre><code>7115056005_hw2.zip
+├── 7115056005_hw2.py              # Python 主程式 (一鍵自動化執行腳本)
+├── 7115056005_hw2.ipynb           # 包含執行輸出與視覺化之 Jupyter Notebook
+├── index.html                     # 靜態網站首頁 (包含所有分析、評估圖表與 AI 對話內容)
 ├── assets/                        # 7 張 300 DPI 分析圖表
-└── README.md                      # GitHub 專案說明文件 (附 GitHub Pages 連結)</code></pre>
+└── README.md                      # GitHub 專案說明文件 (附 GitHub Pages 完整成果網站連結)</code></pre>
     </section>
 
     <!-- Section 8: Implementation Guide -->
@@ -723,7 +721,7 @@
 pip install numpy pandas scikit-learn statsmodels scipy matplotlib seaborn kagglehub jupyter
 
 # 2. 執行主程式 (自動下載/讀取 WHO 資料集、訓練模型、輸出 7 張圖表與 index.html)
-python main.py</code></pre>
+python 7115056005_hw2.py</code></pre>
     </section>
 </div>
 
